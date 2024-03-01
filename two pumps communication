@@ -1,0 +1,68 @@
+#include <HardwareSerial.h>
+
+#define pump1_rx_pin 4 // Brown
+#define pump1_tx_pin 5 // White
+
+#define pump2_rx_pin 21 // Purple
+#define pump2_tx_pin 23 // Blue
+
+HardwareSerial pump1_serial(1); // Serial communication for pump 1
+HardwareSerial pump2_serial(2); // Serial communication for pump 2
+
+String inputstring = ""; // Buffer for storing input from PC
+String devicestring = ""; // Buffer for storing input from pumps
+
+boolean input_string_complete = false; // Flag to indicate if input from PC is complete
+boolean device_string_complete = false; // Flag to indicate if input from pumps is complete
+
+float ml; // Variable to hold volume
+
+void setup() {
+  Serial.begin(9600); // Initialize serial communication with PC
+  pump1_serial.begin(9600, SERIAL_8N1, pump1_rx_pin, pump1_tx_pin); // Initialize serial communication with pump 1
+  pump2_serial.begin(9600, SERIAL_8N1, pump2_rx_pin, pump2_tx_pin); // Initialize serial communication with pump 2
+}
+
+void loop() {
+  // Check for incoming data from the PC
+  if (Serial.available() > 0) {
+    inputstring = Serial.readStringUntil('\n'); // Read the string until newline character
+    input_string_complete = true; // Set input string complete flag
+    
+    // Check if input string specifies pump 1
+    if (inputstring.startsWith("P1")) {
+      pump1_serial.print(inputstring.substring(2)); // Send command to pump 1
+      pump1_serial.print('\r'); // Add carriage return
+    } 
+    // Check if input string specifies pump 2
+    else if (inputstring.startsWith("P2")) {
+      pump2_serial.print(inputstring.substring(2)); // Send command to pump 2
+      pump2_serial.print('\r'); // Add carriage return
+    }
+  }
+
+  // Check for incoming data from pumps
+  if (pump1_serial.available() > 0) {
+    char inchar = (char)pump1_serial.read(); // Read incoming character
+    devicestring += inchar; // Append character to device string
+    if (inchar == '\r') { // Check if carriage return is received
+      device_string_complete = true; // Set device string complete flag
+    }
+  } else if (pump2_serial.available() > 0) {
+    char inchar = (char)pump2_serial.read(); // Read incoming character
+    devicestring += inchar; // Append character to device string
+    if (inchar == '\r') { // Check if carriage return is received
+      device_string_complete = true; // Set device string complete flag
+    }
+  }
+
+  // If device string is complete
+  if (device_string_complete) {
+    Serial.println(devicestring); // Print device string to PC's serial monitor
+
+    // Optionally, parse the received data if needed
+
+    devicestring = ""; // Clear device string
+    device_string_complete = false; // Reset device string complete flag
+  }
+}
