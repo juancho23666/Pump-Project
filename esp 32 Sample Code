@@ -1,8 +1,8 @@
 #include <HardwareSerial.h> // Instead of SoftwareSerial for ESP32
 
 // Define the new pinouts
-#define rx_pin 4 // Map digital pin 2 on the ESP32 to RX
-#define tx_pin 5 // Map digital pin 3 on the ESP32 to TX
+#define rx_pin 4 // Map digital pin 2 on the ESP32 to RX Green Cable
+#define tx_pin 5 // Map digital pin 3 on the ESP32 to TX White Cable
 
 HardwareSerial myserial(1); // Use HardwareSerial for ESP32, Serial1 refers to RX pin 2 and TX pin 3 on most ESP32 boards
 
