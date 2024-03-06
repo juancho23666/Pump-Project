@@ -1,12 +1,10 @@
 #include <HardwareSerial.h>
 
 // Define the pinouts
-#define rx_pin 4 // RX pin number
-#define tx_pin 5 // TX pin number
+#define rx_pin 4 // RX pin number Green Cable
+#define tx_pin 5 // TX pin number White Cable
 
 HardwareSerial myserial(1); // Use HardwareSerial for ESP32
-
-bool isPaused = false;
 
 void setup() {
   Serial.begin(9600);       // Set baud rate for the hardware serial port
