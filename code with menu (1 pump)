@@ -1,0 +1,99 @@
+#include <HardwareSerial.h>
+
+// Define the pinouts
+#define rx_pin 4 // RX pin number
+#define tx_pin 5 // TX pin number
+
+HardwareSerial myserial(1); // Use HardwareSerial for ESP32
+
+bool isPaused = false;
+
+void setup() {
+  Serial.begin(9600);       // Set baud rate for the hardware serial port
+  myserial.begin(9600, SERIAL_8N1, rx_pin, tx_pin); // Set baud rate for the software serial port
+  showMenu();               // Show the operation menu
+}
+
+void loop() {
+
+  // Handle incoming data from the PC
+  if (Serial.available() > 0) {
+    String inputstring = Serial.readStringUntil('\n'); // Read the input string
+    handleUserInput(inputstring); // Handle the user input based on the menu
+  }
+
+  // Handle incoming data from the device
+  if (myserial.available() > 0) {
+    String devicestring = myserial.readStringUntil('\r'); // Read the device string
+    Serial.println(devicestring);              // Output the device response to the Serial Monitor
+  }
+}
+
+void showMenu() {
+  Serial.println(F("Pump Operation Menu:"));
+  Serial.println(F("1 - Continuous dispensing"));
+  Serial.println(F("2 - Volume Dispensing"));
+  Serial.println(F("3 - Constant flowrate"));
+  Serial.println(F("4 - Dose over time"));
+  Serial.println(F("5 - Pause"));
+  Serial.println(F("6 - Stop"));
+  Serial.println(F("Enter your choice followed by the parameters if required:"));
+}
+
+void handleUserInput(String input) {
+  int mode = input.toInt();
+  switch (mode) {
+    case 1: // Continuous dispensing
+      myserial.println("D,*"); // Assuming "D,*" is the correct command
+      Serial.println("Continuous dispensing mode activated.");
+      break;
+    case 2: { // Volume dispensing
+      Serial.println("Enter volume:");
+      while (!Serial.available()) {} // Wait for user input
+      String volume = Serial.readStringUntil('\n'); // Read the volume input
+      volume.trim(); // Trim the volume input
+      myserial.println("D," + volume); // Assuming "D," prefix for volume dispensing
+      Serial.println("Volume dispensing mode activated with volume: " + volume);
+      break;
+    }
+    case 3: { // Constant flowrate
+      Serial.println("Enter flowrate:");
+      while (!Serial.available()) {} // Wait for user input for flowrate
+      String flowrate = Serial.readStringUntil('\n'); // Read the flowrate input
+      flowrate.trim(); // Trim the flowrate input
+
+      Serial.println("Enter time:");
+      while (!Serial.available()) {} // Wait for user input for time
+      String time = Serial.readStringUntil('\n'); // Read the time input
+      time.trim(); // Trim the time input
+      myserial.println("DC," + flowrate + "," + time); // Assuming "DC," prefix for constant flowrate
+      Serial.println("Constant flowrate mode activated with flowrate: " + flowrate + " and time: " + time);
+      break;
+    }
+    case 4: { // Dose over time
+      Serial.println("Enter dose:");
+      while (!Serial.available()) {} // Wait for user input for dose
+      String dose = Serial.readStringUntil('\n'); // Read the dose input
+      dose.trim(); // Trim the dose input
+
+      Serial.println("Enter time:");
+      while (!Serial.available()) {} // Wait for user input for time
+      String timeDose = Serial.readStringUntil('\n'); // Read the time input
+      timeDose.trim(); // Trim the time input
+      myserial.println("D," + dose + "," + timeDose); // Assuming "D," prefix for dose over time
+      Serial.println("Dose over time mode activated with dose: " + dose + " and time: " + timeDose);
+      break;
+    }
+    case 5: // Pause
+      myserial.println("p"); // Send the stop command to the pump      Serial.println("Pump operation paused. Enter 'p' to resume or 'x' to stop completely.");
+      break;
+    case 6: // Stop
+      myserial.println("x"); // Send the stop command to the pump
+      Serial.println("Pump operation stopped.");
+      break;
+    default:
+      Serial.println("Invalid mode selected. Please try again.");
+      showMenu();
+      break;
+  }
+}
