@@ -1,0 +1,144 @@
+#include <HardwareSerial.h>
+
+// Define the pinouts
+#define pump1_rx_pin 4  // Brown
+#define pump1_tx_pin 5  // White
+#define pump2_rx_pin 21 // Purple
+#define pump2_tx_pin 23 // Blue
+
+enum PumpSelection { PUMP_1, PUMP_2 };
+
+HardwareSerial pump1_serial(1); // Serial communication for pump 1
+HardwareSerial pump2_serial(2); // Serial communication for pump 2
+
+String inputstring = ""; // Buffer for storing input from PC
+String devicestring = ""; // Buffer for storing input from pumps
+
+boolean input_string_complete = false; // Flag to indicate if input from PC is complete
+boolean device_string_complete = false; // Flag to indicate if input from pumps is complete
+
+PumpSelection currentPump = PUMP_1; // Default pump selection
+
+float ml;     // Variable to hold volume
+String dose;  // Variable to hold dose
+String timeVar;  // Variable to hold time
+String volume; // Variable to hold volume for mode 2
+
+void setup() {
+  Serial.begin(9600); // Set baud rate for the hardware serial port
+  pump1_serial.begin(9600, SERIAL_8N1, pump1_rx_pin, pump1_tx_pin); // Initialize serial communication with pump 1
+  pump2_serial.begin(9600, SERIAL_8N1, pump2_rx_pin, pump2_tx_pin); // Initialize serial communication with pump 2
+  showMenu(); // Show the operation menu
+}
+
+void loop() {
+  // Check for incoming data from the PC
+  if (Serial.available() > 0) {
+    inputstring = Serial.readStringUntil('\n'); // Read the string until newline character
+    input_string_complete = true; // Set input string complete flag
+
+    // Check if input string specifies pump 1 or pump 2
+    if (inputstring.startsWith("P1")) {
+      currentPump = PUMP_1;
+    } else if (inputstring.startsWith("P2")) {
+      currentPump = PUMP_2;
+    } else {
+      // Handle menu commands
+      handleUserInput(inputstring);
+    }
+  }
+
+  // Check for incoming data from pumps
+  if (pump1_serial.available() > 0) {
+    char inchar = (char)pump1_serial.read(); // Read incoming character
+    devicestring += inchar; // Append character to device string
+    if (inchar == '\r') { // Check if carriage return is received
+      device_string_complete = true; // Set device string complete flag
+    }
+  } else if (pump2_serial.available() > 0) {
+    char inchar = (char)pump2_serial.read(); // Read incoming character
+    devicestring += inchar; // Append character to device string
+    if (inchar == '\r') { // Check if carriage return is received
+      device_string_complete = true; // Set device string complete flag
+    }
+  }
+
+  // If device string is complete
+  if (device_string_complete) {
+    Serial.println(devicestring); // Print device string to PC's serial monitor
+
+    // Optionally, parse the received data if needed
+
+    devicestring = ""; // Clear device string
+    device_string_complete = false; // Reset device string complete flag
+  }
+}
+
+void showMenu() {
+  Serial.println(F("Pump Operation Menu:"));
+  Serial.println(F("1 - Continuous dispensing"));
+  Serial.println(F("2 - Volume Dispensing"));
+  Serial.println(F("3 - Constant flowrate"));
+  Serial.println(F("4 - Dose over time"));
+  Serial.println(F("5 - Pause"));
+  Serial.println(F("6 - Stop"));
+  Serial.println(F("Enter your choice followed by the parameters if required:"));
+}
+
+void handleUserInput(String input) {
+  int mode = input.toInt();
+  switch (mode) {
+    case 1: // Continuous dispensing
+      if (currentPump == PUMP_1) {
+        pump1_serial.println("P1,D,*"); // Command for continuously dispensing with pump 1
+      } else if (currentPump == PUMP_2) {
+        pump2_serial.println("P2,D,*"); // Command for continuously dispensing with pump 2
+      }
+      Serial.println("Continuous dispensing mode activated.");
+      break;
+    case 2: // Volume dispensing
+      if (currentPump == PUMP_1) {
+        pump1_serial.println("P1,D," + volume); // Command for volume dispensing with pump 1
+      } else if (currentPump == PUMP_2) {
+        pump2_serial.println("P2,D," + volume); // Command for volume dispensing with pump 2
+      }
+      Serial.println("Volume dispensing mode activated with volume: " + volume);
+      break;
+    case 3: // Constant flowrate
+      if (currentPump == PUMP_1) {
+        pump1_serial.println("P1,DC," + String(ml) + "," + timeVar); // Convert ml to String and concatenate
+      } else if (currentPump == PUMP_2) {
+        pump2_serial.println("P2,DC," + String(ml) + "," + timeVar); // Convert ml to String and concatenate
+      }
+      Serial.println("Constant flowrate mode activated with flowrate: " + String(ml) + " ml/min and time: " + timeVar);
+      break;
+    case 4: // Dose over time
+      if (currentPump == PUMP_1) {
+        pump1_serial.println("P1,D," + dose + "," + timeVar); // Command for dose over time with pump 1
+      } else if (currentPump == PUMP_2) {
+        pump2_serial.println("P2,D," + dose + "," + timeVar); // Command for dose over time with pump 2
+      }
+      Serial.println("Dose over time mode activated with dose: " + dose + " ml and time: " + timeVar);
+      break;
+    case 5: // Pause
+      if (currentPump == PUMP_1) {
+        pump1_serial.println("P1,p"); // Command to pause and unpause pump 1
+      } else if (currentPump == PUMP_2) {
+        pump2_serial.println("P2,p"); // Command to pause and unpause pump 2
+      }
+      Serial.println("Pump operation paused. Enter 'p' to resume or 'x' to stop completely.");
+      break;
+    case 6: // Stop
+      if (currentPump == PUMP_1) {
+        pump1_serial.println("P1,x"); // Send the stop command to pump 1
+      } else if (currentPump == PUMP_2) {
+        pump2_serial.println("P2,x"); // Send the stop command to pump 2
+      }
+      Serial.println("Pump operation stopped.");
+      break;
+    default:
+      Serial.println("Invalid mode selected. Please try again.");
+      showMenu();
+      break;
+  }
+}
