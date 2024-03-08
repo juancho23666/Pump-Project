@@ -33,16 +33,18 @@ void showMenu() {
   Serial.println(F("2 - Volume Dispensing"));
   Serial.println(F("3 - Constant flowrate"));
   Serial.println(F("4 - Dose over time"));
-  Serial.println(F("5 - Pause"));
-  Serial.println(F("6 - Stop"));
+  Serial.println(F("5 - Calibrate pump"));
+  Serial.println(F("6 - Pause"));
+  Serial.println(F("7 - Stop"));
   Serial.println(F("Enter your choice followed by the parameters if required:"));
 }
 
 void handleUserInput(String input) {
   int mode = input.toInt();
+  String actualVolume; // Declare actualVolume outside the switch statement
   switch (mode) {
     case 1: // Continuous dispensing
-      myserial.println("D,*"); // Command for continously dispensing
+      myserial.println("D,*"); // Command for continuously dispensing
       Serial.println("Continuous dispensing mode activated.");
       break;
     case 2: { // Volume dispensing
@@ -82,11 +84,19 @@ void handleUserInput(String input) {
       Serial.println("Dose over time mode activated with dose: " + dose + " and time: " + timeDose);
       break;
     }
-    case 5: // Pause
+    case 5: // Calibrate pump
+      Serial.println("Enter actual volume dispensed:");
+      while (!Serial.available()) {} // Wait for user input for actual volume dispensed
+      actualVolume = Serial.readStringUntil('\n'); // Read the actual volume input
+      actualVolume.trim(); // Trim the actual volume input
+      myserial.println("Cal," + actualVolume); // Command for calibrating the pump
+      Serial.println("Pump calibrated with actual volume dispensed: " + actualVolume);
+      break;
+    case 6: // Pause
       myserial.println("p"); // Command to pause and unpause the pump  
       Serial.println("Pump operation paused. Enter 'p' to resume or 'x' to stop completely.");
       break;
-    case 6: // Stop
+    case 7: // Stop
       myserial.println("x"); // Send the stop command to the pump
       Serial.println("Pump operation stopped.");
       break;
