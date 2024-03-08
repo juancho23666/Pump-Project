@@ -7,16 +7,16 @@
 HardwareSerial myserial(1); // Use HardwareSerial for ESP32, Serial1 refers to RX pin 2 and TX pin 3 on most ESP32 boards
 
 String inputstring = "";    // A string to hold incoming data from the PC
-String devicestring = "";   // A string to hold the data from the Atlas Scientific product
+String devicestring = "";   // A string to hold the data from the Pump
 boolean input_string_complete = false;  // Have we received all the data from the PC
-boolean device_string_complete = false; // Have we received all the data from the Atlas Scientific product
+boolean device_string_complete = false; // Have we received all the data from the Pump
 float ml;  // Used to hold a floating point number that is the volume
 
 void setup() {
   Serial.begin(9600);       // Set baud rate for the hardware serial port to 9600 (for communication with PC)
   myserial.begin(9600, SERIAL_8N1, rx_pin, tx_pin); // Set baud rate for the software serial port to 9600, and define RX and TX pins
   inputstring.reserve(10);  // Set aside some bytes for receiving data from the PC
-  devicestring.reserve(30); // Set aside some bytes for receiving data from the Atlas Scientific product
+  devicestring.reserve(30); // Set aside some bytes for receiving data from the Pump
 }
 
 void loop() {
@@ -25,12 +25,12 @@ void loop() {
     inputstring = Serial.readStringUntil(13); // Read the string until we see a <CR>
     input_string_complete = true;             // Set the flag used to tell if we have received a completed string from the PC
 
-    // Send the received string to the Atlas Scientific product
+    // Send the received string to the Pump
     myserial.print(inputstring);
     myserial.print('\r');                     // Add a <CR> to the end of the string
   }
 
-  // Check for incoming data from the Atlas Scientific product
+  // Check for incoming data from the Pump
   if (myserial.available() > 0) {
     char inchar = (char)myserial.read();      // Get the char we just received
     devicestring += inchar;                   // Add the char to the var called devicestring
