@@ -20,7 +20,7 @@ void loop() {
     handleUserInput(inputstring); // Handle the user input based on the menu
   }
 
-  // Handle incoming data from the device
+  // Handle incoming data from the pump
   if (myserial.available() > 0) {
     String devicestring = myserial.readStringUntil('\r'); // Read the device string
     Serial.println(devicestring);              // Output the device response to the Serial Monitor
@@ -42,7 +42,7 @@ void handleUserInput(String input) {
   int mode = input.toInt();
   switch (mode) {
     case 1: // Continuous dispensing
-      myserial.println("D,*"); // Assuming "D,*" is the correct command
+      myserial.println("D,*"); // Command for continously dispensing
       Serial.println("Continuous dispensing mode activated.");
       break;
     case 2: { // Volume dispensing
@@ -50,26 +50,26 @@ void handleUserInput(String input) {
       while (!Serial.available()) {} // Wait for user input
       String volume = Serial.readStringUntil('\n'); // Read the volume input
       volume.trim(); // Trim the volume input
-      myserial.println("D," + volume); // Assuming "D," prefix for volume dispensing
+      myserial.println("D," + volume); // Command for dispensing specific volume
       Serial.println("Volume dispensing mode activated with volume: " + volume);
       break;
     }
     case 3: { // Constant flowrate
-      Serial.println("Enter flowrate:");
+      Serial.println("Enter flowrate [ml/min]:");
       while (!Serial.available()) {} // Wait for user input for flowrate
       String flowrate = Serial.readStringUntil('\n'); // Read the flowrate input
       flowrate.trim(); // Trim the flowrate input
 
-      Serial.println("Enter time:");
+      Serial.println("Enter desired time or * to run continously:");
       while (!Serial.available()) {} // Wait for user input for time
       String time = Serial.readStringUntil('\n'); // Read the time input
       time.trim(); // Trim the time input
-      myserial.println("DC," + flowrate + "," + time); // Assuming "DC," prefix for constant flowrate
+      myserial.println("DC," + flowrate + "," + time); // Command for constant flow rate 
       Serial.println("Constant flowrate mode activated with flowrate: " + flowrate + " and time: " + time);
       break;
     }
     case 4: { // Dose over time
-      Serial.println("Enter dose:");
+      Serial.println("Enter the fixed volume:");
       while (!Serial.available()) {} // Wait for user input for dose
       String dose = Serial.readStringUntil('\n'); // Read the dose input
       dose.trim(); // Trim the dose input
@@ -78,12 +78,13 @@ void handleUserInput(String input) {
       while (!Serial.available()) {} // Wait for user input for time
       String timeDose = Serial.readStringUntil('\n'); // Read the time input
       timeDose.trim(); // Trim the time input
-      myserial.println("D," + dose + "," + timeDose); // Assuming "D," prefix for dose over time
+      myserial.println("D," + dose + "," + timeDose); // Command for dispensing a fixed volume over a fixed time 
       Serial.println("Dose over time mode activated with dose: " + dose + " and time: " + timeDose);
       break;
     }
     case 5: // Pause
-      myserial.println("p"); // Send the stop command to the pump      Serial.println("Pump operation paused. Enter 'p' to resume or 'x' to stop completely.");
+      myserial.println("p"); // Command to pause and unpause the pump  
+      Serial.println("Pump operation paused. Enter 'p' to resume or 'x' to stop completely.");
       break;
     case 6: // Stop
       myserial.println("x"); // Send the stop command to the pump
