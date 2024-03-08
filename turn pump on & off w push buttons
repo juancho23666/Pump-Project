@@ -1,0 +1,58 @@
+#include <HardwareSerial.h>
+// Define the pinouts
+#define rx_pin 4
+#define tx_pin 5
+#define button_pin_1 23 // First button pin for "d,*" command
+#define button_pin_2 19 // Second button pin for "x" command
+HardwareSerial myserial(1); // Use HardwareSerial for ESP32
+String inputstring = "";    
+String devicestring = "";   
+boolean input_string_complete = false;
+boolean device_string_complete = false;
+float ml;  
+bool lastButtonState1 = HIGH; // Assume first button starts unpressed
+bool lastButtonState2 = HIGH; // Assume second button starts unpressed
+void setup() {
+  Serial.begin(9600);
+  myserial.begin(9600, SERIAL_8N1, rx_pin, tx_pin);
+  pinMode(button_pin_1, INPUT_PULLUP); // Initialize the first button pin as an input with internal pull-up resistor
+  pinMode(button_pin_2, INPUT_PULLUP); // Initialize the second button pin as an input with internal pull-up resistor
+  inputstring.reserve(10);  
+  devicestring.reserve(30); 
+}
+void loop() {
+  // Button 1: Send "d,*"
+  checkAndSendButtonCommand(button_pin_1, lastButtonState1, "d,*\r");
+  
+  // Button 2: Send "x"
+  checkAndSendButtonCommand(button_pin_2, lastButtonState2, "x\r");
+  // Original code for handling serial communication remains unchanged
+  // ...
+  if (Serial.available() > 0) {
+    inputstring = Serial.readStringUntil(13); // Read the string until we see a <CR>
+    input_string_complete = true;             
+    myserial.print(inputstring);
+    myserial.print('\r');                     
+  }
+  if (myserial.available() > 0) {
+    char inchar = (char)myserial.read();      
+    devicestring += inchar;                   
+    if (inchar == '\r') {                     
+      device_string_complete = true;          
+    }
+  }
+  if (device_string_complete == true) {
+    Serial.println(devicestring); 
+    devicestring = "";          
+    device_string_complete = false;
+  }
+}
+// Function to check button state and send a command if pressed
+void checkAndSendButtonCommand(int buttonPin, bool &lastButtonState, String command) {
+  bool buttonState = digitalRead(buttonPin);
+  if (lastButtonState == HIGH && buttonState == LOW) {
+    myserial.print(command);
+    delay(50); // Debounce delay
+  }
+  lastButtonState = buttonState;
+}
