@@ -1,0 +1,76 @@
+#include <Wire.h>
+#include <HardwareSerial.h>
+
+#define address 109 // Default I2C ID number for EZO-PMP-L Large Embedded Dosing Pump.
+
+char computerdata[20];
+byte received_from_computer = 0;
+bool serial_event = false;
+byte code = 0;
+char pmp_data[20];
+byte in_char = 0;
+byte i = 0;
+int time_ = 250;
+float pmp_float;
+
+void setup() {
+  Serial.begin(9600); // Serial port initialization
+  Wire.begin(21, 22); // Initialize I2C communication with SDA pin 21 and SCL pin 22
+}
+
+void loop() {
+  if (Serial.available() > 0) { // Check if data is available from serial port
+    received_from_computer = Serial.readBytesUntil(13, computerdata, 20);
+    computerdata[received_from_computer] = 0;
+    serial_event = true;
+  }
+
+  if (serial_event == true) {
+    for (i = 0; i <= received_from_computer; i++) {
+      computerdata[i] = tolower(computerdata[i]);
+    }
+    i = 0;
+
+    Wire.beginTransmission(address);
+    Wire.write((const uint8_t*)computerdata, received_from_computer);
+    Wire.endTransmission();
+
+    if (strcmp(computerdata, "sleep") != 0) {
+      delay(time_);
+
+      Wire.requestFrom(address, 20, 1);
+      code = Wire.read();
+
+      switch (code) {
+        case 1:
+          Serial.println("Success");
+          break;
+        case 2:
+          Serial.println("Failed");
+          break;
+        case 254:
+          Serial.println("Pending");
+          break;
+        case 255:
+          Serial.println("No Data");
+          break;
+      }
+
+      while (Wire.available()) {
+        in_char = Wire.read();
+        pmp_data[i] = in_char;
+        i += 1;
+        if (in_char == 0) {
+          i = 0;
+          break;
+        }
+      }
+
+      Serial.println(pmp_data);
+    }
+    serial_event = false;
+  }
+
+  // Uncomment this section if you want to take the EZO-PMP value and convert it into a floating-point number.
+  // pmp_float = atof(pmp_data);
+}
