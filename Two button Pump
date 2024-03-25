@@ -1,0 +1,34 @@
+#include <Wire.h>
+
+#define PUMP_ADDRESS 109 // I2C address of the peristaltic pump
+#define START_BUTTON 19 // GPIO pin connected to the start button
+#define STOP_BUTTON 23 // GPIO pin connected to the stop button
+
+void setup() {
+  Wire.begin(); // Initialize I2C communication
+  pinMode(START_BUTTON, INPUT_PULLUP); // Set start button pin as input with pull-up resistor
+  pinMode(STOP_BUTTON, INPUT_PULLUP); // Set stop button pin as input with pull-up resistor
+  Serial.begin(9600); // Initialize serial communication for debugging
+}
+
+void loop() {
+  if (digitalRead(START_BUTTON) == LOW) { // If start button is pressed
+    Serial.println("Starting the pump...");
+    sendCommand("D,*"); // Send start command to the pump
+    delay(1000); // Debounce delay
+  }
+
+  if (digitalRead(STOP_BUTTON) == LOW) { // If stop button is pressed
+    Serial.println("Stopping the pump...");
+    sendCommand("X"); // Send stop command to the pump
+    delay(1000); // Debounce delay
+  }
+}
+
+void sendCommand(const char* command) {
+  Wire.beginTransmission(PUMP_ADDRESS); // Start I2C communication with pump
+  Wire.write(command); // Write command data
+  Wire.endTransmission(); // End I2C communication
+
+  delay(100); // Delay to allow the pump to process the command
+}
