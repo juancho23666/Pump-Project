@@ -1,0 +1,117 @@
+#include <Wire.h>
+#include <HardwareSerial.h>
+
+#define PUMP_ADDRESS 109 // Default I2C ID number for EZO-PMP-L Large Embedded Dosing Pump.
+
+String actualVolume; // Declare actualVolume outside the switch statement
+
+void setup() {
+  Serial.begin(9600); // Serial port initialization
+  Wire.begin();        // Initialize I2C communication
+  
+  // Print the pump operation menu
+  Serial.println(F("Pump Operation Menu:"));
+  Serial.println(F("1 - Continuous dispensing"));
+  Serial.println(F("2 - Volume Dispensing"));
+  Serial.println(F("3 - Constant flowrate"));
+  Serial.println(F("4 - Dose over time"));
+  Serial.println(F("5 - Calibrate pump"));
+  Serial.println(F("6 - Pause"));
+  Serial.println(F("7 - Stop"));
+  Serial.println(F("Enter your choice followed by the parameters if required:"));
+}
+
+void loop() {
+  if (Serial.available() > 0) { // Check if data is available from serial port
+    String input = Serial.readStringUntil('\r'); // Read the input string
+    input.trim(); // Trim the input string
+    input.toLowerCase(); // Convert input to lowercase
+    
+    handleUserInput(input); // Handle user input based on the menu
+  }
+}
+
+void handleUserInput(String input) {
+  int mode = input.toInt();
+  switch (mode) {
+    case 1: // Continuous dispensing
+      sendCommandToPump("D,*"); // Command for continuous dispensing
+      Serial.println("Continuous dispensing mode activated.");
+      break;
+    case 2: // Volume dispensing
+      volumeDispensing();
+      break;
+    case 3: // Constant flowrate
+      constantFlowrate();
+      break;
+    case 4: // Dose over time
+      doseOverTime();
+      break;
+    case 5: // Calibrate pump
+      calibratePump();
+      break;
+    case 6: // Pause
+      sendCommandToPump("p"); // Command to pause and unpause the pump
+      Serial.println("Pump operation paused. Enter 'p' to resume or 'x' to stop completely.");
+      break;
+    case 7: // Stop
+      sendCommandToPump("x"); // Command to stop the pump
+      Serial.println("Pump operation stopped.");
+      break;
+    default:
+      Serial.println("Invalid mode selected. Please try again.");
+      break;
+  }
+}
+
+void sendCommandToPump(String command) {
+  Wire.beginTransmission(PUMP_ADDRESS);
+  Wire.write(command.c_str());
+  Wire.endTransmission();
+}
+
+void volumeDispensing() {
+  Serial.println("Enter volume:");
+  while (!Serial.available()) {} // Wait for user input
+  String volume = Serial.readStringUntil('\n'); // Read the volume input
+  volume.trim(); // Trim the volume input
+  sendCommandToPump("D," + volume); // Command for dispensing specific volume
+  Serial.println("Volume dispensing mode activated with volume: " + volume);
+}
+
+void constantFlowrate() {
+  Serial.println("Enter flowrate [ml/min]:");
+  while (!Serial.available()) {} // Wait for user input for flowrate
+  String flowrate = Serial.readStringUntil('\n'); // Read the flowrate input
+  flowrate.trim(); // Trim the flowrate input
+
+  Serial.println("Enter desired time or * to run continously:");
+  while (!Serial.available()) {} // Wait for user input for time
+  String time = Serial.readStringUntil('\n'); // Read the time input
+  time.trim(); // Trim the time input
+  sendCommandToPump("DC," + flowrate + "," + time); // Command for constant flow rate 
+  Serial.println("Constant flowrate mode activated with flowrate: " + flowrate + " and time: " + time);
+}
+
+void doseOverTime() {
+  Serial.println("Enter the fixed volume:");
+  while (!Serial.available()) {} // Wait for user input for dose
+  String dose = Serial.readStringUntil('\n'); // Read the dose input
+  dose.trim(); // Trim the dose input
+
+  Serial.println("Enter time:");
+  while (!Serial.available()) {} // Wait for user input for time
+  String timeDose = Serial.readStringUntil('\n'); // Read the time input
+  timeDose.trim(); // Trim the time input
+  sendCommandToPump("D," + dose + "," + timeDose); // Command for dispensing a fixed volume over a fixed time 
+  Serial.println("Dose over time mode activated with dose: " + dose + " and time: " + timeDose);
+}
+
+void calibratePump() {
+  Serial.println("Enter actual volume dispensed:");
+  while (!Serial.available()) {} // Wait for user input for actual volume dispensed
+  actualVolume = Serial.readStringUntil('\n'); // Read the actual volume input
+  actualVolume.trim(); // Trim the actual volume input
+  sendCommandToPump("Cal," + actualVolume); // Command for calibrating the pump
+  Serial.println("Pump calibrated with actual volume dispensed: " + actualVolume);
+}
